@@ -7,6 +7,8 @@ REDIS_TAGS ?= 2.6.17 2.8.22 3.0.7 3.2.6 4.0-rc2
 BUILD_DIR ?= build
 INSTALL_DIR ?= $(BUILD_DIR)
 
+TEST_ARGS ?= "-n 4"
+
 REDIS_TARGETS = $(foreach T,$(REDIS_TAGS),$(INSTALL_DIR)/$T/redis-server)
 
 .PHONY: all flake doc man-doc spelling test cov dist devel clean
@@ -101,13 +103,13 @@ $(CERT_DIR)/test.crt: $(CERT_DIR)/.test.key
 
 $(CERT_DIR)/.test.key:
 	mkdir -p $(CERT_DIR)
-	openssl genrsa -out $@ 1024
+	openssl genrsa -out $@ 4096
 
 
 ci-test: $(REDIS_TARGETS)
 	$(call travis_start,tests)
 	@echo "Tests run"
-	py.test -rsxX --cov -n 4 \
+	py.test -rsxX --cov \
 		--ssl-cafile=$(CERT_DIR)/test.crt \
 		$(foreach T,$(REDIS_TARGETS),--redis-server=$T) $(TEST_ARGS)
 	$(call travis_end,tests)
@@ -116,8 +118,10 @@ ci-build-redis: $(REDIS_TARGETS)
 
 $(INSTALL_DIR)/%/redis-server: $(BUILD_DIR)/redis-%.tar.gz
 	@echo "Building Redis v$*"
-	cd $(BUILD_DIR) && tar -xzvf redis-$*.tar.gz
-	make -j -C $(BUILD_DIR)/redis-$* INSTALL_BIN=$(abspath $(INSTALL_DIR))/$* install
+	cd $(BUILD_DIR) && tar -xzf redis-$*.tar.gz
+	make -j -C $(BUILD_DIR)/redis-$* \
+		INSTALL_BIN=$(abspath $(INSTALL_DIR))/$* \
+		install >$(BUILD_DIR)/build-$*.log 2>&1
 
 $(BUILD_DIR)/redis-%.tar.gz:
 	mkdir -p $(BUILD_DIR)
