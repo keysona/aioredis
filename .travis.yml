@@ -16,16 +16,18 @@ env:
 
 matrix:
   include:
-  - python: "3.3"
-    env: TASKS="ci-test flake examples"
-  - python: "3.4"
-    env: TASKS="ci-test flake examples"
-  - python: "3.5"
-    env: TASKS="ci-test flake examples"
-  - python: "3.6"
-    env: TASKS="ci-test flake examples spelling"
-  - python: "3.6"
-    env: TASKS="ci-test flake examples" TEST_ARGS="--uvloop"
+  # - python: "3.3"
+  #   env: TASKS="ci-test flake examples"
+  # - python: "3.4"
+  #   env: TASKS="ci-test flake examples"
+  # - python: "3.5"
+  #   env: TASKS="ci-test flake examples"
+  # - python: "3.6"
+  #   env: TASKS="ci-test flake examples spelling"
+  # - python: "3.6"
+  #   env: TASKS="ci-test flake examples" TEST_ARGS="--uvloop"
+  - python: "pypy"
+    env: PYPY_RELEASE="pypy3.5-5.7.1-beta-linux_x86_64-portable" TASKS="ci-test examples"
   allow_failures:
   - env: TASKS="ci-test flake examples" TEST_ARGS="--uvloop"
 
@@ -37,9 +39,14 @@ before_cache:
   - rm -f $HOME/.cache/pip/log/debug.log
 
 install:
-- pip install hiredis
-- pip install sphinx
-- pip install codecov
+- |
+    if [ "$TRAVIS_PYTHON_VERSION" = "pypy" ]; then
+      wget -c "https://bitbucket.org/squeaky/portable-pypy/downloads/$PYPY_RELEASE.tar.bz2" -O - | tar -xjC $HOME
+      export PYPY_VERSION="$($HOME/$PYPY_RELEASE/bin/pypy3 -V | grep PyPy | cut -d ' ' -f2)"
+      echo $PYPY_VERSION
+      $HOME/$PYPY_RELEASE/bin/pypy3 -m venv $HOME/virtualenvs/pypy3
+      source $HOME/virtualenvs/pypy3/bin/activate
+    fi
 - pip install -r tests/requirements.txt
 - pip install -r docs/requirements.txt
 - pip install -e .
